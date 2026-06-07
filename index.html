@@ -422,19 +422,20 @@
             ctx.fill();
             ctx.restore();
 
-            // 2. Mt. Fuji Silhouette (月光に照らされ白く輝く美しい山体)
+            // 2. Mt. Fuji Silhouette (雪を被り白銀に輝く富士山)
             ctx.save();
-            // 上から下にかけて、白から淡いブルーグレーへ流れるグラデーションで立体感を表現
+            // 山頂から裾野へ明るいカラーでグラデーションを作成し、視認性を大幅に向上
             const fujiGrad = ctx.createLinearGradient(0, GAME_HEIGHT * 0.48, 0, GAME_HEIGHT);
-            fujiGrad.addColorStop(0, '#f8fafc'); // 頂上付近は明るい雪の白
-            fujiGrad.addColorStop(0.4, '#e2e8f0'); // 中腹は柔らかいパールホワイト
-            fujiGrad.addColorStop(1, '#94a3b8'); // 裾野は霧に煙る淡い青グレー
+            fujiGrad.addColorStop(0, '#ffffff');    // 頂上付近はまばゆい純白
+            fujiGrad.addColorStop(0.3, '#f1f5f9');  // 中腹は明るいソフトホワイト
+            fujiGrad.addColorStop(1, '#cbd5e1');    // 裾野も暗くせず、視認性の高い明るいグレーへ
             ctx.fillStyle = fujiGrad;
             
-            // 富士山自体が月明かりでほんのり光るようにグローエフェクトを追加
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.25)';
+            // 月明かりに照らされた発光効果（グロー）を強化
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
 
+            // 富士山のパスを描画
             ctx.beginPath();
             ctx.moveTo(GAME_WIDTH * 0.1, GAME_HEIGHT);
             ctx.bezierCurveTo(GAME_WIDTH * 0.4, GAME_HEIGHT * 0.72, GAME_WIDTH * 0.46, GAME_HEIGHT * 0.48, GAME_WIDTH * 0.49, GAME_HEIGHT * 0.48);
@@ -442,12 +443,18 @@
             ctx.bezierCurveTo(GAME_WIDTH * 0.56, GAME_HEIGHT * 0.48, GAME_WIDTH * 0.62, GAME_HEIGHT * 0.72, GAME_WIDTH * 0.92, GAME_HEIGHT);
             ctx.closePath();
             ctx.fill();
+
+            // ★ 背景との境界を100%際立たせるための【ホワイトネオン輪郭線】を追加
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            
             ctx.restore();
 
             // 3. Snow-capped summit (山頂の積雪 - さらに輝く超純白で境界線をくっきり)
             ctx.save();
             ctx.fillStyle = '#ffffff';
-            ctx.shadowBlur = 25;
+            ctx.shadowBlur = 30;
             ctx.shadowColor = '#ffffff';
             
             ctx.beginPath();
@@ -1183,7 +1190,7 @@
         function draw() {
             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-            // 1. Beautiful traditional art scene background
+            // 1. Beautiful traditional art scene background (ここで美しい和風背景と富士山を描画)
             drawJapaneseBackground();
 
             // 2. Sakura blossom petals fall layer
