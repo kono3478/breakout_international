@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOKAI BREAKER: Neo-Tokyo Edition</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Noto+Serif+JP:wght@700;900&family=Orbitron:wght@500;800&display=swap');
+        
+        body {
+            font-family: 'Orbitron', 'Noto Serif JP', serif;
+            background: radial-gradient(circle at center, #0d0f1d, #030408);
+            touch-action: none; /* Disable scroll and double-tap zoom on mobile */
+        }
+        .font-cinzel {
+            font-family: 'Cinzel', serif;
+        }
+        .font-nihongo {
+            font-family: 'Noto Serif JP', serif;
+        }
+        /* Elegant Gold and Cherry Blossom Glow */
+        .gold-shadow {
+            box-shadow: 0 0 25px rgba(212, 163, 89, 0.3), 0 0 50px rgba(251, 113, 133, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-100 flex flex-col justify-between overflow-hidden select-none">
+
+    <!-- ヘッダー（スコア等HUD - 日英併記） -->
+    <header class="w-full max-w-5xl mx-auto px-4 pt-4 flex justify-between items-center z-10 text-xs sm:text-sm">
+        <div class="flex items-center gap-3">
+            <div class="bg-red-950/40 border border-red-500/30 px-4 py-1.5 rounded-xl backdrop-blur-sm">
+                <span class="text-[10px] text-rose-400 font-bold uppercase tracking-widest block leading-none mb-0.5">SCORE / 得点</span>
+                <span id="scoreDisplay" class="font-bold text-lg sm:text-xl text-white tracking-widest">000,000</span>
+            </div>
+            <div class="bg-amber-950/40 border border-amber-500/30 px-4 py-1.5 rounded-xl backdrop-blur-sm">
+                <span class="text-[10px] text-amber-400 font-bold uppercase tracking-widest block leading-none mb-0.5">BEST / 最高記録</span>
+                <span id="highScoreDisplay" class="font-bold text-lg sm:text-xl text-white tracking-widest">000,000</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <!-- レベル表示 -->
+            <div class="bg-indigo-950/40 border border-indigo-500/30 px-4 py-1.5 rounded-xl backdrop-blur-sm">
+                <span class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest block leading-none mb-0.5">STAGE / 舞台</span>
+                <span id="levelDisplay" class="font-bold text-lg sm:text-xl text-white tracking-widest">1</span>
+            </div>
+            <!-- ライフ表示 -->
+            <div class="flex gap-1" id="livesContainer">
+                <!-- Generates cherry blossom icons dynamically -->
+            </div>
+        </div>
+    </header>
+
+    <!-- メインゲームエリア -->
+    <main class="flex-1 flex flex-col justify-center items-center px-4 py-2 relative w-full max-w-5xl mx-auto">
+        
+        <!-- ゲームコンテナ -->
+        <div class="relative w-full aspect-[16/10] bg-gray-950/90 border-2 border-amber-500/40 rounded-3xl overflow-hidden gold-shadow max-h-[75vh]">
+            
+            <!-- キャンバス -->
+            <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+
+            <!-- オーバーレイ：スタート・一時停止・ゲームオーバー画面など -->
+            <div id="screenOverlay" class="absolute inset-0 bg-black/95 backdrop-blur-md flex flex-col justify-center items-center p-6 text-center transition-all duration-300">
+                
+                <!-- スタート画面 -->
+                <div id="startView" class="space-y-6 max-w-xl">
+                    <h1 class="font-cinzel text-5xl sm:text-6xl font-black tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-amber-200 via-rose-400 to-amber-500 [filter:drop-shadow(0_2px_8px_rgba(251,113,133,0.5))]">
+                        YOKAI BREAKER
+                    </h1>
+                    <p class="font-nihongo text-lg sm:text-xl font-bold tracking-widest text-amber-300">
+                        〜 妖怪大爆発 〜
+                    </p>
+                    <p class="text-gray-400 text-xs sm:text-sm leading-relaxed font-sans">
+                        Welcome to mystical Japan! Defeat the legendary folklore monsters (<span class="text-rose-400 font-semibold">Yokai</span>) using your sacred <span class="text-amber-400 font-semibold">Wagasa paddle</span> and spirit orb.
+                        Let beautiful sakura cherry blossoms burst with magical item drops!
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center items-center pt-2">
+                        <button id="startButton" class="px-8 py-4 bg-gradient-to-r from-amber-500 via-rose-500 to-amber-600 hover:from-amber-400 hover:to-rose-400 text-black font-black rounded-xl shadow-lg shadow-amber-500/20 transform active:scale-95 transition text-lg tracking-widest uppercase font-cinzel">
+                            <i class="fa-solid fa-gong mr-2 animate-spin"></i> Start Game / 開始
+                        </button>
+                    </div>
+                    <!-- 操作ガイド -->
+                    <div class="text-[11px] text-gray-500 space-y-1.5 pt-4 border-t border-gray-800 font-sans">
+                        <p><i class="fa-solid fa-keyboard mr-1 text-amber-500/70"></i> PC: Move with Left/Right [←][→] Keys or Mouse</p>
+                        <p><i class="fa-solid fa-hand-pointer mr-1 text-amber-500/70"></i> Smartphone: Drag the bottom area to slide</p>
+                        <p><i class="fa-solid fa-space-bar mr-1 text-amber-500/70"></i> Press [Space] to Pause / Launch Ball</p>
+                    </div>
+                </div>
+
+                <!-- ゲームオーバー画面 -->
+                <div id="gameOverView" class="hidden space-y-6">
+                    <div class="w-20 h-20 bg-rose-500/10 border-2 border-rose-500 rounded-full flex items-center justify-center mx-auto text-rose-500 text-4xl animate-bounce">
+                        <i class="fa-solid fa-ghost"></i>
+                    </div>
+                    <h2 class="font-cinzel text-3xl sm:text-5xl font-black text-rose-500 tracking-widest">
+                        GAME OVER
+                    </h2>
+                    <p class="font-nihongo text-sm text-gray-400">妖怪たちに敗北してしまいました...</p>
+                    <div class="space-y-1">
+                        <p class="text-gray-500 text-xs uppercase tracking-widest">Final Score</p>
+                        <p id="finalScore" class="text-3xl font-black text-amber-400">0</p>
+                    </div>
+                    <button id="retryButton" class="px-8 py-3 bg-gradient-to-r from-rose-700 to-amber-600 hover:from-rose-600 hover:to-amber-500 text-white font-extrabold rounded-xl transform active:scale-95 transition tracking-wider">
+                        <i class="fa-solid fa-rotate-left mr-2"></i> Play Again / 再挑戦
+                    </button>
+                </div>
+
+                <!-- ステージクリア画面 -->
+                <div id="gameClearView" class="hidden space-y-6">
+                    <div class="w-20 h-20 bg-amber-500/10 border-2 border-amber-500 rounded-full flex items-center justify-center mx-auto text-amber-400 text-4xl animate-pulse">
+                        <i class="fa-solid fa-torii-gate animate-bounce"></i>
+                    </div>
+                    <h2 class="font-cinzel text-3xl sm:text-5xl font-black text-amber-400 tracking-widest">
+                        STAGE CLEAR!
+                    </h2>
+                    <p id="nextLevelMessage" class="text-gray-300 font-sans text-sm">Congratulations! Prepare yourself for the next Japanese folklore adventure.</p>
+                    <button id="nextLevelButton" class="px-8 py-3 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-black font-black rounded-xl transform active:scale-95 transition tracking-widest uppercase">
+                        Next Stage / 次へ <i class="fa-solid fa-chevron-right ml-2"></i>
+                    </button>
+                </div>
+
+                <!-- ポーズ画面 -->
+                <div id="pausedView" class="hidden space-y-6">
+                    <h2 class="font-cinzel text-4xl font-black text-indigo-400 tracking-widest">
+                        PAUSED / 一時停止
+                    </h2>
+                    <p class="text-gray-400 text-xs font-sans">Relax, take a breath. Ready to resume the battle?</p>
+                    <button id="resumeButton" class="px-8 py-3 bg-gradient-to-r from-indigo-600 to-rose-600 hover:from-indigo-500 hover:to-rose-500 text-white font-extrabold rounded-xl transform active:scale-95 transition">
+                        <i class="fa-solid fa-play mr-2"></i> Resume Game / 再開
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- パワーアップ効果発動中のインジケーター表示 -->
+            <div id="powerupStatus" class="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none">
+                <!-- Power-up badges dynamically loaded here -->
+            </div>
+
+            <!-- モバイル用タップ発射ガイド表示 -->
+            <div id="launchGuide" class="absolute bottom-24 left-1/2 -translate-x-1/2 text-xs text-amber-200 bg-red-950/80 border border-amber-500/30 px-4 py-2 rounded-full pointer-events-none hidden transition-opacity duration-300 font-sans">
+                <i class="fa-solid fa-hand-pointer mr-1 animate-ping"></i> Tap screen to launch Spirit Orb / 玉を発射！
+            </div>
+        </div>
+
+    </main>
+
+    <!-- フッター（コントロールガイドと和風アイテム解説） -->
+    <footer class="w-full max-w-5xl mx-auto px-4 pb-4 flex flex-col sm:flex-row justify-between items-center gap-3 z-10 text-[11px] text-gray-500">
+        <div class="flex items-center gap-4">
+            <button id="soundToggle" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-950 border border-gray-800 text-gray-400 hover:text-white hover:bg-gray-900 transition">
+                <i id="soundIcon" class="fa-solid fa-volume-high text-amber-400"></i>
+                <span class="font-sans">Sound ON</span>
+            </button>
+            <span class="hidden sm:inline text-gray-800">|</span>
+            <span class="hidden sm:inline font-sans"><i class="fa-solid fa-wand-sparkles mr-1 text-rose-400"></i> Catch magical scroll capsules to activate special Japanese charms!</span>
+        </div>
+        <div class="flex items-center gap-2 font-cinzel">
+            <span class="px-2 py-1 bg-purple-950/40 rounded border border-purple-500/20 text-purple-400 font-bold">WIDEN</span>
+            <span class="px-2 py-1 bg-yellow-950/40 rounded border border-yellow-500/20 text-yellow-400 font-bold">CLONE x3</span>
+            <span class="px-2 py-1 bg-cyan-950/40 rounded border border-cyan-500/20 text-cyan-400 font-bold">SLOW</span>
+            <span class="px-2 py-1 bg-green-950/40 rounded border border-green-500/20 text-green-400 font-bold">BARRIER</span>
+            <span class="px-2 py-1 bg-rose-950/40 rounded border border-rose-500/20 text-rose-400 font-bold font-sans">BOMB</span>
+        </div>
+    </footer>
+
+    <!-- JavaScript ロジック -->
+    <script>
+        // ==========================================
+        // サウンド合成システム (Web Audio API - 和テイストにアレンジ)
+        // ==========================================
+        class SoundSynth {
+            constructor() {
+                this.enabled = true;
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                return this.enabled;
+            }
+
+            play(type) {
+                if (!this.enabled) return;
+                this.init();
+                
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+                
+                switch (type) {
+                    case 'hit_brick_1': // 妖怪破壊（キレのある高音）
+                        this.triggerSynth(260, 480, 0.08, 'sine', 0.15);
+                        break;
+                    case 'hit_brick_2': // 硬い妖怪にヒット（少し鈍い太鼓のようなアタック）
+                        this.triggerSynth(120, 180, 0.12, 'triangle', 0.2);
+                        break;
+                    case 'hit_paddle': // 傘ラケット接触（お琴のような涼やかな音）
+                        this.triggerArpeggio([440.00, 554.37], 0.1);
+                        break;
+                    case 'hit_wall': // 壁（尺八風のソフトなアタック）
+                        this.triggerSynth(180, 150, 0.08, 'sine', 0.08);
+                        break;
+                    case 'powerup': // 巻物取得（アルペジオ和風音階：宮調式）
+                        this.triggerArpeggio([261.63, 293.66, 329.63, 392.00, 440.00, 523.25], 0.3);
+                        break;
+                    case 'powerup_activate': // ボム大爆発
+                        this.triggerSynth(400, 80, 0.6, 'sawtooth', 0.2);
+                        break;
+                    case 'life_lost': // ライフ減少
+                        this.triggerSweep(330, 110, 0.5, 'sawtooth', 0.2);
+                        break;
+                    case 'game_over': // ゲームオーバー
+                        this.triggerSweep(147.01, 40, 1.2, 'sawtooth', 0.25);
+                        break;
+                    case 'stage_clear': // ファンファーレ（和風お祝い音階）
+                        this.triggerArpeggio([523.25, 587.33, 659.25, 783.99, 880.00, 1046.50], 0.6);
+                        break;
+                }
+            }
+
+            triggerSynth(startFreq, endFreq, duration, type, volume=0.15) {
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(endFreq, this.ctx.currentTime + duration);
+                    
+                    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {}
+            }
+
+            triggerSweep(startFreq, endFreq, duration, type, volume=0.2) {
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(endFreq, this.ctx.currentTime + duration);
+                    
+                    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {}
+            }
+
+            triggerArpeggio(notes, duration) {
+                try {
+                    const step = duration / notes.length;
+                    notes.forEach((freq, idx) => {
+                        setTimeout(() => {
+                            if (!this.enabled) return;
+                            const osc = this.ctx.createOscillator();
+                            const gain = this.ctx.createGain();
+                            
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                            
+                            gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + step * 2.5);
+                            
+                            osc.connect(gain);
+                            gain.connect(this.ctx.destination);
+                            
+                            osc.start();
+                            osc.stop(this.ctx.currentTime + step * 2.5);
+                        }, idx * step * 1000);
+                    });
+                } catch (e) {}
+            }
+        }
+
+        const sound = new SoundSynth();
+
+        // ==========================================
+        // ゲームステート & システム定数
+        // ==========================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ゲーム設計基準解像度
+        const GAME_WIDTH = 1200;
+        const GAME_HEIGHT = 750;
+
+        // 背景桜花用システム
+        let sakuraPetals = [];
+
+        // ゲーム状態
+        let gameState = {
+            score: 0,
+            highScore: 0,
+            level: 1,
+            lives: 3,
+            maxLives: 5,
+            status: 'START', // 'START', 'PLAYING', 'PAUSED', 'GAMEOVER', 'CLEAR'
+            balls: [],
+            paddle: null,
+            bricks: [],
+            powerups: [],
+            particles: [],
+            shieldActive: false,
+            shieldTime: 0,
+            activeEffects: {},
+            scorePopups: []
+        };
+
+        // キー入力状態
+        const keys = {
+            left: false,
+            right: false
+        };
+
+        // マウス/タッチ座標
+        let inputX = null;
+
+        // パワーアップアイテム種別
+        const POWERUP_TYPES = {
+            WIDEN: { color: '#a855f7', label: 'DEKAI umbrella', text: 'Giant Wagasa Umbrella!', icon: 'fa-arrows-left-right' },
+            MULTIBALL: { color: '#eab308', label: 'SHADOW CLONE', text: 'Kage-Bunshin! Balls Split!', icon: 'fa-clone' },
+            SLOW: { color: '#06b6d4', label: 'ZEN slow', text: 'Zen Calm... Slow Motion!', icon: 'fa-gauge-low' },
+            SHIELD: { color: '#22c55e', label: 'TORII bar', text: 'Sacred Torii Gate Shield!', icon: 'fa-shield-halved' },
+            BOMBBALL: { color: '#f43f5e', label: 'KAGUTSUCHI bomb', text: 'Magical Explosive Fire Orb!', icon: 'fa-fire' }
+        };
+
+        // 和風の妖怪デザイン設定 (KAPPA, TENGU, ONI, KITSUNE)
+        const BRICK_CONFIG = {
+            1: { color: '#10b981', name: 'KAPPA', score: 100, glow: 'rgba(16, 185, 129, 0.5)' },   // 緑：河童 (1 Hit)
+            2: { color: '#3b82f6', name: 'TENGU', score: 250, glow: 'rgba(59, 130, 246, 0.5)' },   // 青：天狗 (2 Hits)
+            3: { color: '#ef4444', name: 'ONI', score: 500, glow: 'rgba(239, 68, 68, 0.5)' },      // 赤：赤鬼 (3 Hits)
+            4: { color: '#f59e0b', name: 'KITSUNE', score: 1000, glow: 'rgba(245, 158, 11, 0.6)' }  // 金：九尾の狐 (Rare Item Drop!)
+        };
+
+        // ==========================================
+        // 桜・富士山・月の和風背景システム
+        // ==========================================
+        class SakuraPetal {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * GAME_WIDTH;
+                this.y = -20;
+                this.size = Math.random() * 8 + 5;
+                this.speedY = Math.random() * 1.5 + 0.6;
+                this.speedX = Math.random() * 1.2 - 0.6;
+                this.angle = Math.random() * Math.PI * 2;
+                this.spin = Math.random() * 0.02 - 0.01;
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX + Math.sin(this.y * 0.008) * 0.4; // Soft wind sway
+                this.angle += this.spin;
+                if (this.y > GAME_HEIGHT) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                ctx.fillStyle = '#fbcfe8'; // Pretty Sakura pink
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = '#fbcfe8';
+                ctx.beginPath();
+                // Draw petal shape
+                ctx.moveTo(0, -this.size / 2);
+                ctx.quadraticCurveTo(this.size / 2, -this.size / 2, this.size / 3, this.size / 2);
+                ctx.quadraticCurveTo(0, this.size / 3, -this.size / 3, this.size / 2);
+                ctx.quadraticCurveTo(-this.size / 2, -this.size / 2, 0, -this.size / 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function drawJapaneseBackground() {
+            // Gradation background (Midnight deep indigo to navy)
+            const bgGrad = ctx.createRadialGradient(GAME_WIDTH / 2, GAME_HEIGHT / 2, 50, GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH);
+            bgGrad.addColorStop(0, '#0f1225');
+            bgGrad.addColorStop(1, '#030408');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            // 1. Golden Full Moon
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(GAME_WIDTH * 0.82, GAME_HEIGHT * 0.28, 70, 0, Math.PI * 2);
+            const moonGrad = ctx.createRadialGradient(GAME_WIDTH * 0.82, GAME_HEIGHT * 0.28, 5, GAME_WIDTH * 0.82, GAME_HEIGHT * 0.28, 70);
+            moonGrad.addColorStop(0, '#fffdf0');
+            moonGrad.addColorStop(0.8, '#ffde7d');
+            moonGrad.addColorStop(1, '#e5b13c');
+            ctx.fillStyle = moonGrad;
+            ctx.shadowBlur = 35;
+            ctx.shadowColor = 'rgba(229, 177, 60, 0.4)';
+            ctx.fill();
+            ctx.restore();
+
+            // 2. Mt. Fuji Silhouette
+            ctx.save();
+            ctx.fillStyle = '#060814';
+            ctx.beginPath();
+            ctx.moveTo(GAME_WIDTH * 0.1, GAME_HEIGHT);
+            ctx.bezierCurveTo(GAME_WIDTH * 0.4, GAME_HEIGHT * 0.72, GAME_WIDTH * 0.46, GAME_HEIGHT * 0.48, GAME_WIDTH * 0.49, GAME_HEIGHT * 0.48);
+            ctx.lineTo(GAME_WIDTH * 0.53, GAME_HEIGHT * 0.48);
+            ctx.bezierCurveTo(GAME_WIDTH * 0.56, GAME_HEIGHT * 0.48, GAME_WIDTH * 0.62, GAME_HEIGHT * 0.72, GAME_WIDTH * 0.92, GAME_HEIGHT);
+            ctx.closePath();
+            ctx.fill();
+
+            // 3. Snow-capped summit (Mt. Fuji Snowcap)
+            ctx.fillStyle = '#f1f5f9';
+            ctx.beginPath();
+            ctx.moveTo(GAME_WIDTH * 0.472, GAME_HEIGHT * 0.55);
+            ctx.lineTo(GAME_WIDTH * 0.49, GAME_HEIGHT * 0.48);
+            ctx.lineTo(GAME_WIDTH * 0.53, GAME_HEIGHT * 0.48);
+            ctx.lineTo(GAME_WIDTH * 0.548, GAME_HEIGHT * 0.55);
+            ctx.bezierCurveTo(GAME_WIDTH * 0.52, GAME_HEIGHT * 0.58, GAME_WIDTH * 0.5, GAME_HEIGHT * 0.54, GAME_WIDTH * 0.472, GAME_HEIGHT * 0.55);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // ==========================================
+        // ゲームエンティティ定義
+        // ==========================================
+
+        // 1. 魂の玉 (Spirit Orb / Ball)
+        class Ball {
+            constructor(x, y, vx = 0, vy = 0) {
+                this.x = x;
+                this.y = y;
+                this.radius = 10;
+                this.baseSpeed = 7 + (gameState.level * 0.3); // Speeds up slightly per stage
+                this.speedMultiplier = 1;
+                this.vx = vx;
+                this.vy = vy;
+                this.launched = false;
+                this.isBomb = false; // Kagutsuchi fire bomb mode
+            }
+
+            get speed() {
+                return this.baseSpeed * this.speedMultiplier;
+            }
+
+            launch() {
+                if (!this.launched) {
+                    const angle = -Math.PI / 2.5 - Math.random() * (Math.PI / 5);
+                    this.vx = Math.cos(angle) * this.speed;
+                    this.vy = Math.sin(angle) * this.speed;
+                    this.launched = true;
+                    document.getElementById('launchGuide').classList.add('hidden');
+                }
+            }
+
+            update() {
+                if (!this.launched) {
+                    this.x = gameState.paddle.x + gameState.paddle.width / 2;
+                    this.y = gameState.paddle.y - this.radius - 2;
+                    return;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Border bouncing (Left / Right)
+                if (this.x - this.radius <= 0) {
+                    this.x = this.radius;
+                    this.vx = -this.vx;
+                    sound.play('hit_wall');
+                } else if (this.x + this.radius >= GAME_WIDTH) {
+                    this.x = GAME_WIDTH - this.radius;
+                    this.vx = -this.vx;
+                    sound.play('hit_wall');
+                }
+
+                // Ceiling bouncing
+                if (this.y - this.radius <= 0) {
+                    this.y = this.radius;
+                    this.vy = -this.vy;
+                    sound.play('hit_wall');
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                
+                // Neon-glowing traditional spirit fire (Hitodama) grad
+                const grad = ctx.createRadialGradient(this.x, this.y, 1, this.x, this.y, this.radius);
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(0.3, this.isBomb ? '#ff5a5a' : '#8be8cb');
+                grad.addColorStop(1, this.isBomb ? '#e11d48' : '#0ea5e9');
+                ctx.fillStyle = grad;
+                
+                ctx.shadowBlur = this.isBomb ? 18 : 12;
+                ctx.shadowColor = this.isBomb ? '#f43f5e' : '#38bdf8';
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // 2. 和傘パドル (Wagasa / Paddle)
+        class Paddle {
+            constructor() {
+                this.baseWidth = 140;
+                this.width = this.baseWidth;
+                this.height = 15;
+                this.x = GAME_WIDTH / 2 - this.width / 2;
+                this.y = GAME_HEIGHT - 60;
+                this.speed = 13;
+            }
+
+            reset() {
+                this.width = this.baseWidth;
+                this.x = GAME_WIDTH / 2 - this.width / 2;
+            }
+
+            update() {
+                if (keys.left) {
+                    this.x -= this.speed;
+                }
+                if (keys.right) {
+                    this.x += this.speed;
+                }
+
+                if (inputX !== null) {
+                    this.x = inputX - this.width / 2;
+                }
+
+                if (this.x < 0) this.x = 0;
+                if (this.x + this.width > GAME_WIDTH) this.x = GAME_WIDTH - this.width;
+            }
+
+            draw() {
+                ctx.save();
+                
+                // Traditional Japanese Lacquered Wood & Vermilion (Shu-iro) gradient
+                const grad = ctx.createLinearGradient(this.x, this.y, this.x + this.width, this.y);
+                grad.addColorStop(0, '#ea580c');
+                grad.addColorStop(0.3, '#fca5a5');
+                grad.addColorStop(0.5, '#e11d48');
+                grad.addColorStop(0.7, '#fca5a5');
+                grad.addColorStop(1, '#ea580c');
+                
+                ctx.fillStyle = grad;
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = 'rgba(225, 29, 72, 0.5)';
+                
+                // Round paddle block representing Wagasa structure
+                ctx.beginPath();
+                ctx.roundRect(this.x, this.y, this.width, this.height, 8);
+                ctx.fill();
+                
+                // Traditional golden rim accent
+                ctx.beginPath();
+                ctx.roundRect(this.x + 8, this.y + 2, this.width - 16, 3, 2);
+                ctx.fillStyle = '#f59e0b';
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        // 3. 妖怪ブロック (Yokai Block / Brick)
+        class Brick {
+            constructor(x, y, width, height, type) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.type = type; // 1: Kappa, 2: Tengu, 3: Oni, 4: Kitsune
+                this.maxHits = type === 4 ? 1 : type; // Fox is 1 hit but rare
+                this.hits = 0;
+                this.active = true;
+            }
+
+            hit() {
+                this.hits++;
+                if (this.hits >= this.maxHits) {
+                    this.active = false;
+                    return true;
+                }
+                return false;
+            }
+
+            draw() {
+                if (!this.active) return;
+
+                const remainingHits = this.maxHits - this.hits;
+                const config = BRICK_CONFIG[remainingHits] || BRICK_CONFIG[1];
+
+                ctx.save();
+                
+                const grad = ctx.createLinearGradient(this.x, this.y, this.x, this.y + this.height);
+                grad.addColorStop(0, config.color);
+                grad.addColorStop(1, adjustColorBrightness(config.color, -30));
+                
+                ctx.fillStyle = grad;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = config.glow;
+
+                // Rounded elegant corner block
+                ctx.beginPath();
+                ctx.roundRect(this.x, this.y, this.width, this.height, 6);
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw traditional Kanji/crest emblem representation (Minimalist lines)
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(this.x + 5, this.y + 5);
+                ctx.lineTo(this.x + this.width - 5, this.y + this.height - 5);
+                ctx.stroke();
+
+                // Show Yokai Initial (English label inside)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                ctx.font = 'bold 9px Orbitron, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(config.name, this.x + this.width / 2, this.y + this.height / 2);
+
+                ctx.restore();
+            }
+        }
+
+        // 4. 魔法の巻物 (Sacred Scroll / Powerup Capsule)
+        class Powerup {
+            constructor(x, y, typeName) {
+                this.x = x;
+                this.y = y;
+                this.width = 30;
+                this.height = 18;
+                this.type = typeName; // 'WIDEN', 'MULTIBALL', 'SLOW', 'SHIELD', 'BOMBBALL'
+                this.speed = 3.2;
+                this.active = true;
+                this.angle = 0;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.angle += 0.04; // Rotating scroll effect
+                if (this.y > GAME_HEIGHT) {
+                    this.active = false;
+                }
+            }
+
+            draw() {
+                if (!this.active) return;
+
+                const info = POWERUP_TYPES[this.type];
+                ctx.save();
+                
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                ctx.rotate(this.angle);
+
+                // Draw scroll-like ninja charm capsule shape
+                ctx.beginPath();
+                ctx.roundRect(-this.width / 2, -this.height / 2, this.width, this.height, 6);
+                ctx.fillStyle = info.color;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = info.color;
+                ctx.fill();
+
+                // Red scroll rims
+                ctx.fillStyle = '#ef4444';
+                ctx.fillRect(-this.width / 2, -this.height / 2, 4, this.height);
+                ctx.fillRect(this.width / 2 - 4, -this.height / 2, 4, this.height);
+
+                // Initial charm letter
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 11px Noto Serif JP, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(info.label[0], 0, 1);
+
+                ctx.restore();
+            }
+        }
+
+        // 5. 神霊の破片（お札・桜風パーティクル）
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.radius = Math.random() * 4 + 2;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 5 + 2.5;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.alpha = 1;
+                this.decay = Math.random() * 0.03 + 0.025;
+                this.shape = Math.random() > 0.4 ? 'sakura' : 'circle';
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.05; // gravity
+                this.alpha -= this.decay;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = this.color;
+                
+                if (this.shape === 'sakura') {
+                    // Small cherry blossom petal particle
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI, true);
+                    ctx.lineTo(this.x, this.y + this.radius * 1.5);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+        }
+
+        // ==========================================
+        // カラー調整用ヘルパー
+        // ==========================================
+        function adjustColorBrightness(hex, percent) {
+            let num = parseInt(hex.replace('#',''), 16),
+                amt = Math.round(2.55 * percent),
+                R = (num >> 16) + amt,
+                G = (num >> 8 & 0x00FF) + amt,
+                B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
+        }
+
+        // ==========================================
+        // HUD描画と更新（お桜風ライフに切り替え）
+        // ==========================================
+        function updateHUD() {
+            document.getElementById('scoreDisplay').textContent = String(gameState.score).padStart(6, '0');
+            document.getElementById('highScoreDisplay').textContent = String(gameState.highScore).padStart(6, '0');
+            document.getElementById('levelDisplay').textContent = gameState.level;
+
+            // Display lives as beautiful glowing Japanese fans / sakura
+            const livesContainer = document.getElementById('livesContainer');
+            livesContainer.innerHTML = '';
+            for (let i = 0; i < gameState.maxLives; i++) {
+                const icon = document.createElement('i');
+                if (i < gameState.lives) {
+                    icon.className = 'fa-solid fa-fan text-rose-400 text-lg sm:text-xl transition-transform duration-300 scale-100 filter drop-shadow-[0_0_5px_rgba(251,113,133,0.7)] animate-pulse';
+                } else {
+                    icon.className = 'fa-regular fa-snowflake text-gray-800 text-base sm:text-lg scale-90';
+                }
+                livesContainer.appendChild(icon);
+            }
+
+            if (gameState.score > gameState.highScore) {
+                gameState.highScore = gameState.score;
+            }
+        }
+
+        // ==========================================
+        // ステージジェネレーター
+        // ==========================================
+        function generateStage(level) {
+            const bricks = [];
+            const rows = 4 + Math.min(level, 4); 
+            const cols = 11;
+            const brickWidth = 90;
+            const brickHeight = 25;
+            const spacing = 8;
+            
+            const totalWidth = cols * (brickWidth + spacing) - spacing;
+            const startX = (GAME_WIDTH - totalWidth) / 2;
+            const startY = 80;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const x = startX + c * (brickWidth + spacing);
+                    const y = startY + r * (brickHeight + spacing);
+                    
+                    let type = 1; // Default: Kappa
+                    
+                    if (r === 0) {
+                        type = level >= 3 ? 3 : 2; // Oni or Tengu
+                    } else if (r === 1 && level >= 2) {
+                        type = 2; // Tengu
+                    } else if (Math.random() > 0.9) {
+                        type = 4; // Kitsune (Fox - Drop chance boost)
+                    } else if (Math.random() > 0.7) {
+                        type = Math.random() > 0.5 ? 2 : 1;
+                    }
+
+                    bricks.push(new Brick(x, y, brickWidth, brickHeight, type));
+                }
+            }
+
+            return bricks;
+        }
+
+        // ==========================================
+        // パワーアップ状態のUI管理
+        // ==========================================
+        function triggerPowerupEffect(type) {
+            const duration = 12000; // Active for 12 seconds
+            
+            gameState.activeEffects[type] = Date.now() + duration;
+            updatePowerupBadges();
+
+            if (type === 'WIDEN') {
+                gameState.paddle.width = gameState.paddle.baseWidth * 1.6;
+                sound.play('powerup');
+            } else if (type === 'MULTIBALL') {
+                sound.play('powerup');
+                const currentBalls = [...gameState.balls];
+                currentBalls.forEach(b => {
+                    if (b.launched) {
+                        const angle1 = Math.atan2(b.vy, b.vx) + 0.25;
+                        const angle2 = Math.atan2(b.vy, b.vx) - 0.25;
+                        const s = b.speed;
+                        const b1 = new Ball(b.x, b.y, Math.cos(angle1)*s, Math.sin(angle1)*s);
+                        const b2 = new Ball(b.x, b.y, Math.cos(angle2)*s, Math.sin(angle2)*s);
+                        b1.isBomb = b.isBomb; 
+                        b2.isBomb = b.isBomb;
+                        gameState.balls.push(b1, b2);
+                    }
+                });
+                gameState.balls.forEach(b => b.launched = true);
+            } else if (type === 'SLOW') {
+                gameState.balls.forEach(b => b.speedMultiplier = 0.55);
+                sound.play('powerup');
+            } else if (type === 'SHIELD') {
+                gameState.shieldActive = true;
+                gameState.shieldTime = Date.now() + duration;
+                sound.play('powerup');
+            } else if (type === 'BOMBBALL') {
+                sound.play('powerup_activate');
+                gameState.balls.forEach(b => b.isBomb = true);
+            }
+        }
+
+        function updatePowerupBadges() {
+            const container = document.getElementById('powerupStatus');
+            container.innerHTML = '';
+
+            const now = Date.now();
+
+            Object.keys(gameState.activeEffects).forEach(type => {
+                const expire = gameState.activeEffects[type];
+                if (expire > now) {
+                    const timeLeft = Math.ceil((expire - now) / 1000);
+                    const info = POWERUP_TYPES[type];
+                    
+                    const badge = document.createElement('div');
+                    badge.className = `flex items-center gap-2 px-3 py-1.5 bg-black/90 border rounded-xl text-xs font-bold filter drop-shadow-md animate-pulse`;
+                    badge.style.borderColor = info.color;
+                    badge.style.color = info.color;
+
+                    badge.innerHTML = `
+                        <i class="fa-solid ${info.icon}"></i>
+                        <span class="font-cinzel tracking-wider">${info.label} (${timeLeft}s)</span>
+                    `;
+                    container.appendChild(badge);
+                } else {
+                    delete gameState.activeEffects[type];
+                    if (type === 'WIDEN') {
+                        gameState.paddle.width = gameState.paddle.baseWidth;
+                    } else if (type === 'SLOW') {
+                        gameState.balls.forEach(b => b.speedMultiplier = 1.0);
+                    } else if (type === 'SHIELD') {
+                        gameState.shieldActive = false;
+                    } else if (type === 'BOMBBALL') {
+                        gameState.balls.forEach(b => b.isBomb = false);
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // 衝突判定アルゴリズム (AABB & 円)
+        // ==========================================
+        function checkCollisionBallBrick(ball, brick) {
+            const closestX = Math.max(brick.x, Math.min(ball.x, brick.x + brick.width));
+            const closestY = Math.max(brick.y, Math.min(ball.y, brick.y + brick.height));
+
+            const distanceX = ball.x - closestX;
+            const distanceY = ball.y - closestY;
+
+            const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+            
+            if (distanceSquared < ball.radius * ball.radius) {
+                let side = "";
+                if (Math.abs(distanceX) > Math.abs(distanceY)) {
+                    side = distanceX > 0 ? "right" : "left";
+                } else {
+                    side = distanceY > 0 ? "bottom" : "top";
+                }
+                return { hit: true, side: side };
+            }
+            return { hit: false };
+        }
+
+        // ==========================================
+        // ゲームコアロジックの更新
+        // ==========================================
+        function update() {
+            if (gameState.status !== 'PLAYING') return;
+
+            gameState.paddle.update();
+
+            // Sakura background petals falling animation
+            sakuraPetals.forEach(p => p.update());
+
+            // Toggle tap guidance
+            const unlaunchedBall = gameState.balls.find(b => !b.launched);
+            if (unlaunchedBall) {
+                document.getElementById('launchGuide').classList.remove('hidden');
+            } else {
+                document.getElementById('launchGuide').classList.add('hidden');
+            }
+
+            // Balls logic
+            for (let i = gameState.balls.length - 1; i >= 0; i--) {
+                const ball = gameState.balls[i];
+                ball.update();
+
+                // Falling off edge
+                if (ball.y + ball.radius > GAME_HEIGHT) {
+                    if (gameState.shieldActive) {
+                        ball.y = GAME_HEIGHT - ball.radius - 8;
+                        ball.vy = -Math.abs(ball.vy);
+                        sound.play('hit_wall');
+                        
+                        // Break shield
+                        gameState.shieldActive = false;
+                        delete gameState.activeEffects['SHIELD'];
+                        updatePowerupBadges();
+                        continue;
+                    }
+
+                    gameState.balls.splice(i, 1);
+                    
+                    if (gameState.balls.length === 0) {
+                        gameState.lives--;
+                        sound.play('life_lost');
+                        updateHUD();
+
+                        if (gameState.lives <= 0) {
+                            gameOver();
+                        } else {
+                            resetBall();
+                        }
+                    }
+                    continue;
+                }
+
+                // Paddle Collision
+                const pad = gameState.paddle;
+                if (ball.y + ball.radius >= pad.y && 
+                    ball.y - ball.radius <= pad.y + pad.height &&
+                    ball.x + ball.radius >= pad.x && 
+                    ball.x - ball.radius <= pad.x + pad.width) {
+                    
+                    const hitPoint = (ball.x - (pad.x + pad.width / 2)) / (pad.width / 2); // -1.0 to 1.0
+                    const maxAngle = Math.PI / 2.8; 
+                    const angle = hitPoint * maxAngle;
+
+                    ball.vx = ball.speed * Math.sin(angle);
+                    ball.vy = -ball.speed * Math.cos(angle);
+                    
+                    if (Math.abs(ball.vy) < 3) {
+                        ball.vy = -4;
+                    }
+
+                    ball.y = pad.y - ball.radius;
+                    sound.play('hit_paddle');
+                    
+                    // Golden particles spark
+                    for (let p = 0; p < 4; p++) {
+                        gameState.particles.push(new Particle(ball.x, pad.y, '#ffd15c'));
+                    }
+                }
+
+                // Brick (Yokai) Collision
+                for (let j = gameState.bricks.length - 1; j >= 0; j--) {
+                    const brick = gameState.bricks[j];
+                    if (!brick.active) continue;
+
+                    const col = checkCollisionBallBrick(ball, brick);
+                    if (col.hit) {
+                        if (!ball.isBomb) {
+                            if (col.side === "left") {
+                                ball.vx = -Math.abs(ball.vx);
+                                ball.x = brick.x - ball.radius;
+                            } else if (col.side === "right") {
+                                ball.vx = Math.abs(ball.vx);
+                                ball.x = brick.x + brick.width + ball.radius;
+                            } else if (col.side === "top") {
+                                ball.vy = -Math.abs(ball.vy);
+                                ball.y = brick.y - ball.radius;
+                            } else if (col.side === "bottom") {
+                                ball.vy = Math.abs(ball.vy);
+                                ball.y = brick.y + brick.height + ball.radius;
+                            }
+                        }
+
+                        const config = BRICK_CONFIG[brick.type] || BRICK_CONFIG[1];
+                        
+                        // Fire bomb mode triggers cluster destruction
+                        if (ball.isBomb) {
+                            brick.active = false;
+                            sound.play('powerup_activate');
+                            
+                            for (let k = gameState.bricks.length - 1; k >= 0; k--) {
+                                const otherBrick = gameState.bricks[k];
+                                if (!otherBrick.active) continue;
+                                const distX = otherBrick.x + otherBrick.width/2 - (brick.x + brick.width/2);
+                                const distY = otherBrick.y + otherBrick.height/2 - (brick.y + brick.height/2);
+                                const dist = Math.sqrt(distX*distX + distY*distY);
+                                if (dist < 160) {
+                                    otherBrick.active = false;
+                                    triggerBrickDestroyEffects(otherBrick);
+                                }
+                            }
+                        }
+
+                        const destroyed = ball.isBomb || brick.hit();
+                        
+                        if (destroyed) {
+                            triggerBrickDestroyEffects(brick);
+                        } else {
+                            sound.play('hit_brick_2');
+                            for (let p = 0; p < 3; p++) {
+                                gameState.particles.push(new Particle(ball.x, ball.y, config.color));
+                            }
+                        }
+                        
+                        break; 
+                    }
+                }
+            }
+
+            // Scrolls physics
+            for (let i = gameState.powerups.length - 1; i >= 0; i--) {
+                const item = gameState.powerups[i];
+                item.update();
+
+                const pad = gameState.paddle;
+                if (item.active &&
+                    item.y + item.height >= pad.y &&
+                    item.y <= pad.y + pad.height &&
+                    item.x + item.width >= pad.x &&
+                    item.x <= pad.x + pad.width) {
+                    
+                    triggerPowerupEffect(item.type);
+                    item.active = false;
+                }
+
+                if (!item.active) {
+                    gameState.powerups.splice(i, 1);
+                }
+            }
+
+            // Particles update
+            for (let i = gameState.particles.length - 1; i >= 0; i--) {
+                const p = gameState.particles[i];
+                p.update();
+                if (p.alpha <= 0) {
+                    gameState.particles.splice(i, 1);
+                }
+            }
+            
+            // Floating score popups update
+            for (let i = gameState.scorePopups.length - 1; i >= 0; i--) {
+                const popup = gameState.scorePopups[i];
+                popup.y -= 1.2;
+                popup.alpha -= 0.025;
+                if (popup.alpha <= 0) {
+                    gameState.scorePopups.splice(i, 1);
+                }
+            }
+
+            updatePowerupBadges();
+
+            const activeBricks = gameState.bricks.filter(b => b.active);
+            if (activeBricks.length === 0) {
+                stageClear();
+            }
+        }
+        
+        // Destructive effects helper
+        function triggerBrickDestroyEffects(brick) {
+            const config = BRICK_CONFIG[brick.type] || BRICK_CONFIG[1];
+            
+            sound.play('hit_brick_1');
+            const scoreToAdd = config.score;
+            gameState.score += scoreToAdd;
+            updateHUD();
+            
+            // Add score overlay popups
+            gameState.scorePopups.push({
+                x: brick.x + brick.width/2,
+                y: brick.y,
+                score: scoreToAdd,
+                color: config.color,
+                alpha: 1
+            });
+
+            // Spark dynamic Japanese cherry/magic fragments
+            for (let p = 0; p < 12; p++) {
+                gameState.particles.push(new Particle(
+                    brick.x + brick.width / 2, 
+                    brick.y + brick.height / 2, 
+                    config.color
+                ));
+            }
+
+            // Drop rate balance
+            let dropChance = 0.16; 
+            if (brick.type === 4) dropChance = 0.55; // Fox boss scroll chance
+
+            if (Math.random() < dropChance) {
+                const types = Object.keys(POWERUP_TYPES);
+                const chosenType = types[Math.floor(Math.random() * types.length)];
+                gameState.powerups.push(new Powerup(
+                    brick.x + brick.width / 2 - 15,
+                    brick.y + brick.height,
+                    chosenType
+                ));
+            }
+        }
+
+        // ==========================================
+        // 描画メイン
+        // ==========================================
+        function draw() {
+            ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            // 1. Beautiful traditional art scene background
+            drawJapaneseBackground();
+
+            // 2. Sakura blossom petals fall layer
+            sakuraPetals.forEach(p => p.draw());
+
+            // 3. Sacred Torii Wall
+            if (gameState.shieldActive) {
+                ctx.save();
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 6;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#22c55e';
+                ctx.beginPath();
+                ctx.moveTo(0, GAME_HEIGHT - 6);
+                ctx.lineTo(GAME_WIDTH, GAME_HEIGHT - 6);
+                ctx.stroke();
+
+                // Draw small Torii arches along the laser boundary
+                ctx.fillStyle = '#ef4444';
+                for (let i = 50; i < GAME_WIDTH; i += 150) {
+                    ctx.fillRect(i - 8, GAME_HEIGHT - 18, 16, 12);
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(i - 10, GAME_HEIGHT - 19, 20, 3);
+                    ctx.fillStyle = '#ef4444';
+                }
+                ctx.restore();
+            }
+
+            // 4. Game elements rendering
+            gameState.bricks.forEach(b => b.draw());
+            gameState.powerups.forEach(item => item.draw());
+            gameState.particles.forEach(p => p.draw());
+            
+            // Draw floating text
+            gameState.scorePopups.forEach(popup => {
+                ctx.save();
+                ctx.globalAlpha = popup.alpha;
+                ctx.fillStyle = popup.color;
+                ctx.font = 'bold 22px Orbitron, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('+' + popup.score, popup.x, popup.y);
+                ctx.restore();
+            });
+            
+            gameState.paddle.draw();
+            gameState.balls.forEach(b => b.draw());
+        }
+
+        // ==========================================
+        // ゲームループ
+        // ==========================================
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ==========================================
+        // ゲームコントロール・状態遷移
+        // ==========================================
+        
+        function initGame() {
+            gameState.score = 0;
+            gameState.level = 1;
+            gameState.lives = 3;
+            gameState.balls = [];
+            gameState.powerups = [];
+            gameState.particles = [];
+            gameState.scorePopups = [];
+            gameState.activeEffects = {};
+            gameState.shieldActive = false;
+
+            gameState.paddle = new Paddle();
+            resetBall();
+            gameState.bricks = generateStage(gameState.level);
+            
+            // Build 30 Sakura Petals
+            sakuraPetals = [];
+            for (let i = 0; i < 30; i++) {
+                sakuraPetals.push(new SakuraPetal());
+            }
+
+            updateHUD();
+        }
+
+        function resetBall() {
+            gameState.paddle.reset();
+            const b = new Ball(0, 0);
+            gameState.balls = [b];
+            
+            Object.keys(gameState.activeEffects).forEach(k => {
+                delete gameState.activeEffects[k];
+            });
+            gameState.shieldActive = false;
+            b.isBomb = false; 
+            updatePowerupBadges();
+        }
+
+        function startGame() {
+            sound.init();
+            initGame();
+            gameState.status = 'PLAYING';
+            hideOverlay();
+        }
+
+        function stageClear() {
+            gameState.status = 'CLEAR';
+            sound.play('stage_clear');
+            
+            document.getElementById('nextLevelMessage').textContent = `Fabulous! You have conquered Stage ${gameState.level}! Leveling up...`;
+            showOverlay('gameClearView');
+        }
+
+        function loadNextLevel() {
+            gameState.level++;
+            resetBall();
+            gameState.bricks = generateStage(gameState.level);
+            
+            gameState.status = 'PLAYING';
+            updateHUD();
+            hideOverlay();
+        }
+
+        function gameOver() {
+            gameState.status = 'GAMEOVER';
+            sound.play('game_over');
+            
+            document.getElementById('finalScore').textContent = String(gameState.score).toLocaleString();
+            showOverlay('gameOverView');
+        }
+
+        function togglePause() {
+            if (gameState.status === 'PLAYING') {
+                gameState.status = 'PAUSED';
+                showOverlay('pausedView');
+            } else if (gameState.status === 'PAUSED') {
+                gameState.status = 'PLAYING';
+                hideOverlay();
+            }
+        }
+
+        // UI表示マネージャ
+        function showOverlay(viewId) {
+            const overlay = document.getElementById('screenOverlay');
+            overlay.classList.remove('opacity-0', 'pointer-events-none');
+            
+            document.getElementById('startView').classList.add('hidden');
+            document.getElementById('gameOverView').classList.add('hidden');
+            document.getElementById('gameClearView').classList.add('hidden');
+            document.getElementById('pausedView').classList.add('hidden');
+
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        function hideOverlay() {
+            const overlay = document.getElementById('screenOverlay');
+            overlay.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        // ==========================================
+        // イベントハンドラー & 入力リスナー
+        // ==========================================
+
+        window.addEventListener('keydown', e => {
+            if (e.key === 'ArrowLeft' || e.key === 'Left') keys.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'Right') keys.right = true;
+            
+            if (e.key === ' ' || e.key === 'Spacebar') {
+                e.preventDefault();
+                if (gameState.status === 'PLAYING') {
+                    const unlaunchedBall = gameState.balls.find(b => !b.launched);
+                    if (unlaunchedBall) {
+                        unlaunchedBall.launch();
+                    } else {
+                        togglePause();
+                    }
+                } else if (gameState.status === 'PAUSED') {
+                    togglePause();
+                } else if (gameState.status === 'START') {
+                    startGame();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', e => {
+            if (e.key === 'ArrowLeft' || e.key === 'Left') keys.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'Right') keys.right = false;
+        });
+
+        // マウス操作
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = GAME_WIDTH / rect.width;
+            inputX = (e.clientX - rect.left) * scaleX;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            inputX = null;
+        });
+
+        // タッチ操作
+        canvas.addEventListener('touchmove', e => {
+            if (e.touches.length > 0) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = GAME_WIDTH / rect.width;
+                inputX = (e.touches[0].clientX - rect.left) * scaleX;
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', () => {
+            inputX = null;
+        });
+
+        canvas.addEventListener('touchstart', e => {
+            if (gameState.status === 'PLAYING') {
+                const unlaunchedBall = gameState.balls.find(b => !b.launched);
+                if (unlaunchedBall) {
+                    unlaunchedBall.launch();
+                }
+            }
+        }, { passive: true });
+
+        // リサイズ管理
+        function handleResize() {
+            const container = canvas.parentElement;
+            const containerWidth = container.clientWidth;
+            const containerHeight = containerWidth * (GAME_HEIGHT / GAME_WIDTH);
+
+            canvas.style.width = containerWidth + 'px';
+            canvas.style.height = containerHeight + 'px';
+
+            canvas.width = GAME_WIDTH;
+            canvas.height = GAME_HEIGHT;
+        }
+
+        window.addEventListener('resize', handleResize);
+
+        // ボタンイベント
+        document.getElementById('startButton').addEventListener('click', startGame);
+        document.getElementById('retryButton').addEventListener('click', startGame);
+        document.getElementById('nextLevelButton').addEventListener('click', loadNextLevel);
+        document.getElementById('resumeButton').addEventListener('click', togglePause);
+
+        // サウンドON/OFFボタン
+        const soundToggle = document.getElementById('soundToggle');
+        const soundIcon = document.getElementById('soundIcon');
+        soundToggle.addEventListener('click', () => {
+            sound.init();
+            const active = sound.toggle();
+            if (active) {
+                soundIcon.className = 'fa-solid fa-volume-high text-amber-400';
+                soundToggle.querySelector('span').textContent = 'Sound ON';
+            } else {
+                soundIcon.className = 'fa-solid fa-volume-xmark text-gray-500';
+                soundToggle.querySelector('span').textContent = 'Sound OFF';
+            }
+        });
+
+        // ==========================================
+        // イニシャライズ
+        // ==========================================
+        window.onload = function() {
+            // roundRectポリフィル (古いブラウザ対応)
+            if (!CanvasRenderingContext2D.prototype.roundRect) {
+                CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+                    if (w < 2 * r) r = w / 2;
+                    if (h < 2 * r) r = h / 2;
+                    this.beginPath();
+                    this.moveTo(x + r, y);
+                    this.arcTo(x + w, y, x + w, y + h, r);
+                    this.arcTo(x + w, y + h, x, y + h, r);
+                    this.arcTo(x, y + h, x, y, r);
+                    this.arcTo(x, y, x + w, y, r);
+                    this.closePath();
+                    return this;
+                };
+            }
+            handleResize();
+            initGame();
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
