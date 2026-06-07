@@ -422,9 +422,19 @@
             ctx.fill();
             ctx.restore();
 
-            // 2. Mt. Fuji Silhouette
+            // 2. Mt. Fuji Silhouette (月光に照らされ白く輝く美しい山体)
             ctx.save();
-            ctx.fillStyle = '#060814';
+            // 上から下にかけて、白から淡いブルーグレーへ流れるグラデーションで立体感を表現
+            const fujiGrad = ctx.createLinearGradient(0, GAME_HEIGHT * 0.48, 0, GAME_HEIGHT);
+            fujiGrad.addColorStop(0, '#f8fafc'); // 頂上付近は明るい雪の白
+            fujiGrad.addColorStop(0.4, '#e2e8f0'); // 中腹は柔らかいパールホワイト
+            fujiGrad.addColorStop(1, '#94a3b8'); // 裾野は霧に煙る淡い青グレー
+            ctx.fillStyle = fujiGrad;
+            
+            // 富士山自体が月明かりでほんのり光るようにグローエフェクトを追加
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.25)';
+
             ctx.beginPath();
             ctx.moveTo(GAME_WIDTH * 0.1, GAME_HEIGHT);
             ctx.bezierCurveTo(GAME_WIDTH * 0.4, GAME_HEIGHT * 0.72, GAME_WIDTH * 0.46, GAME_HEIGHT * 0.48, GAME_WIDTH * 0.49, GAME_HEIGHT * 0.48);
@@ -432,9 +442,14 @@
             ctx.bezierCurveTo(GAME_WIDTH * 0.56, GAME_HEIGHT * 0.48, GAME_WIDTH * 0.62, GAME_HEIGHT * 0.72, GAME_WIDTH * 0.92, GAME_HEIGHT);
             ctx.closePath();
             ctx.fill();
+            ctx.restore();
 
-            // 3. Snow-capped summit (Mt. Fuji Snowcap)
-            ctx.fillStyle = '#f1f5f9';
+            // 3. Snow-capped summit (山頂の積雪 - さらに輝く超純白で境界線をくっきり)
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = '#ffffff';
+            
             ctx.beginPath();
             ctx.moveTo(GAME_WIDTH * 0.472, GAME_HEIGHT * 0.55);
             ctx.lineTo(GAME_WIDTH * 0.49, GAME_HEIGHT * 0.48);
